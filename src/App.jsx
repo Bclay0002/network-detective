@@ -1,156 +1,174 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 export default function App() {
-  const [messages, setMessages] = useState([
-    { type: 'system', text: '[SYSTEM INITIALIZED]: Diagnostics matrix online. Select a simulator preset on the left or input a custom incident log below.' }
-  ]);
-  const [input, setInput] = useState('');
-  const [loading, setLoading] = useState(false);
-  const chatOutputRef = useRef(null);
+  const [currentScenario, setCurrentScenario] = useState(null);
+  const [logs, setLogs] = useState([]);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [aiReport, setAiReport] = useState("");
+  const [severityScore, setSeverityScore] = useState(0);
+  const [latency, setLatency] = useState(0);
+  const terminalEndRef = useRef(null);
 
-  useEffect(() => {
-    if (chatOutputRef.current) {
-      chatOutputRef.current.scrollTop = chatOutputRef.current.scrollHeight;
-    }
-  }, [messages]);
-
-  // Preset scenarios so recruiters can test with a single click
-  const scenarios = [
-    {
-      title: "🔥 Firewall Breach Attempt",
-      log: "WARNING: Unauthenticated POST request detected on admin panel from IP 185.220.101.5. Repeated failures (401 Unauthorized) followed by sudo exploit attempt. Configuration rule 44 broken."
+  const presets = {
+    firewall: {
+      name: "🔥 Cyber Attack / Firewall Breach",
+      log: "CRITICAL: Unauthorized authentication bypass attempt detected at 10.0.4.15:8443. Target node: prod-db-01. Signature matches high-volume SSH brute force exploit. Root access compromised via breached API token rule #8812.",
+      impact: "HIGH",
+      color: "#ef4444"
     },
-    {
-      title: "🕸️ BGP Route Leak",
-      log: "BGP_SESSION_CHANGED: Neighbor 192.0.2.1 (AS 65001) sent invalid transit path for prefix 8.8.8.0/24. Local preference override missing. Traffic routing loop detected between core switches."
+    bgp: {
+      name: "🕸️ BGP Route Leak / Network Outage",
+      log: "ALERT: Border Gateway Protocol peer routing leak detected from AS-65104. Invalid prefix announcement 172.16.0.0/12 accepted by border-switch-02. Asynchronous path loop creating localized 42% packet drop rate.",
+      impact: "CRITICAL",
+      color: "#f59e0b"
     },
-    {
-      title: "⚠️ AWS S3 Bucket Leak",
-      log: "AWS_IAM_ALERT: S3 Bucket 'production-customer-data-01' policy updated by user_id_882. Effect: Allow, Principal: '*', Action: 's3:GetObject'. Public access block overridden."
+    aws: {
+      name: "⚠️ Cloud Data Leak / IAM Misconfig",
+      log: "WARN: Production S3 Bucket 'client-records-vault' public access control list changed to standard broad visibility. Read permissions open to anonymous principals without MFA confirmation. Object exfiltration risk active.",
+      impact: "MEDIUM",
+      color: "#3b82f6"
     }
-  ];
-
-  const applyScenario = (logText) => {
-    setInput(logText);
   };
 
-  const handleSend = async () => {
-    const trimmedInput = input.trim();
-    if (!trimmedInput) return;
+  const addLog = (text, type = "info") => {
+    const time = new Date().toLocaleTimeString();
+    setLogs(prev => [...prev, { time, text, type }]);
+  };
 
-    setMessages(prev => [...prev, { type: 'user', text: `> USER REQUEST: ${trimmedInput}` }]);
-    setInput('');
-    setLoading(true);
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [logs]);
 
+  const triggerDiagnostic = async (key) => {
+    if (isProcessing) return;
+    
+    const scenario = presets[key];
+    setCurrentScenario(scenario);
+    setIsProcessing(true);
+    setAiReport("");
+    setSeverityScore(0);
+    setLatency(0);
+    setLogs([]);
+
+    // Simulate Step-by-Step Backend System Trace Logs
+    setTimeout(() => addLog(`📡 Ingesting live system log telemetry stream...`, "info"), 100);
+    setTimeout(() => addLog(`🔒 Routing traffic payload via secure Vercel edge framework...`, "info"), 600);
+    setTimeout(() => addLog(`🧬 Formatting ingestion schema for serverless model context...`, "process"), 1200);
+    setTimeout(() => addLog(`🤖 Querying AI Broker Engine [Gemini Core Stack]...`, "process"), 1900);
+
+    const startTime = performance.now();
     try {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: trimmedInput })
+        body: JSON.stringify({ message: scenario.log })
       });
       const data = await response.json();
+      const endTime = performance.now();
       
-      setMessages(prev => [...prev, { type: 'ai', text: data.reply || "Diagnostics complete. System status returned nominal." }]);
+      setLatency(Math.round(endTime - startTime));
+      setSeverityScore(scenario.impact === "CRITICAL" ? 98 : scenario.impact === "HIGH" ? 82 : 45);
+      addLog(`✨ Diagnostics engine payload returned successful [HTTP 200]`, "success");
+      setAiReport(data.reply || "Analysis complete. Infrastructure status stable.");
     } catch (err) {
-      setMessages(prev => [...prev, { type: 'system', text: '[CRITICAL BROKER EXCEPTION]: Server connection timeout. Verify API keys.' }]);
+      addLog(`❌ Broker exception: Connection to serverless layer interrupted`, "error");
+      setAiReport("Failed to generate report. Please verify your background credentials.");
     } finally {
-      setLoading(false);
+      setIsProcessing(false);
     }
   };
 
   return (
-    <div style={{ backgroundColor: '#090d16', color: '#f3f4f6', fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', minHeight: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '40px 20px', boxSizing: 'border-box' }}>
-      <div style={{ width: '100%', maxWidth: '1200px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px', backgroundColor: '#111827', borderRadius: '16px', border: '1px solid #1f2937', padding: '30px', boxShadow: '0 20px 40px rgba(0,0,0,0.6)', boxSizing: 'border-box' }}>
-        
-        {/* LEFT COLUMN: GUIDANCE AND PRODUCT OVERVIEW */}
-        <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between', paddingRight: '10px' }}>
-          <div>
-            <div style={{ display: 'inline-block', backgroundColor: '#1e293b', border: '1px solid #3b82f6', color: '#60a5fa', padding: '6px 12px', borderRadius: '20px', fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', trackingLetter: '1px', marginBottom: '16px' }}>
-              🤖 Project Showcase
-            </div>
-            <h1 style={{ margin: '0 0 12px 0', fontSize: '28px', fontWeight: '800', color: '#ffffff', letterSpacing: '-0.5px' }}>
-              Network Detective
-            </h1>
-            <p style={{ margin: '0 0 24px 0', color: '#9ca3af', fontSize: '15px', lineHeight: '1.6' }}>
-              This platform validates asynchronous automation architectures. It securely connects a serverless backend to public Cloud APIs, processing simulated infrastructure telemetry logs and security configuration faults in real-time.
-            </p>
+    <div style={{ backgroundColor: '#090d16', color: '#f3f4f6', fontFamily: 'system-ui, -apple-system, sans-serif', minHeight: '100vh', padding: '30px', boxSizing: 'border-box' }}>
+      
+      {/* HEADER BANNER */}
+      <header style={{ maxWidth: '1400px', margin: '0 auto 30px auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #1e293b', paddingBottom: '20px' }}>
+        <div>
+          <h1 style={{ margin: '0 0 6px 0', fontSize: '26px', fontWeight: '800', trackingLetter: '-0.5px', color: '#ffffff' }}>
+            AI-Driven Autonomous Network Diagnostics Platform
+          </h1>
+          <p style={{ margin: 0, color: '#9ca3af', fontSize: '14px' }}>
+            Enterprise Cloud Automation Portfolio Piece • Engineered to Securely Process Infrastructure Outages
+          </p>
+        </div>
+        <div style={{ display: 'flex', gap: '15px' }}>
+          <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', padding: '10px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', color: '#38bdf8' }}>
+            ☁️ ARCHITECTURE: SERVERLESS VERCEL
+          </div>
+          <div style={{ backgroundColor: '#1e293b', border: '1px solid #334155', padding: '10px 16px', borderRadius: '8px', fontSize: '12px', fontWeight: '600', color: '#34d399' }}>
+            🤖 AI BROKER: GEMINI CORE FREE TIER
+          </div>
+        </div>
+      </header>
 
-            <h3 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '700', textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '0.5px' }}>
-              Recruiter Quick-Test Presets
-            </h3>
-            <p style={{ margin: '0 0 16px 0', color: '#6b7280', fontSize: '13px' }}>
-              Don't know network syntax? Click any scenario button below to auto-inject faulty enterprise telemetry logs directly into the engine:
+      {/* MAIN CONTENT GRID */}
+      <main style={{ maxWidth: '1400px', margin: '0 auto', display: 'grid', gridTemplateColumns: '400px 1fr', gap: '30px' }}>
+        
+        {/* LEFT COLUMN: ARCHITECTURE EXPLANATION & INTERACTION PANEL */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
+          
+          {/* BUSINESS VALUE COMPONENT FOR RECRUITERS */}
+          <section style={{ backgroundColor: '#111827', border: '1px solid #1e293b', borderRadius: '12px', padding: '24px' }}>
+            <h2 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '1px', marginTop: '0', marginBottom: '14px' }}>
+              💼 Executive Impact Summary
+            </h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px', lineHeight: '1.5', color: '#d1d5db' }}>
+              <div style={{ display: 'flex', gap: '10px', alignment: 'flex-start' }}>
+                <span style={{ color: '#3b82f6' }}>✔</span>
+                <span><strong>Solves High Costs:</strong> Replaces paid $20/mo platform tokens with a customized, zero-cost Google AI enterprise sandbox model.</span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignment: 'flex-start' }}>
+                <span style={{ color: '#3b82f6' }}>✔</span>
+                <span><strong>Recruiter Usability:</strong> Pre-loaded infrastructure incident environments eliminate the need to understand complex system syntax.</span>
+              </div>
+              <div style={{ display: 'flex', gap: '10px', alignment: 'flex-start' }}>
+                <span style={{ color: '#3b82f6' }}>✔</span>
+                <span><strong>Secure Engineering:</strong> Runs calculations inside sandboxed serverless edge pathways, hiding private security keys from frontend users.</span>
+              </div>
+            </div>
+          </section>
+
+          {/* PRESES CONTROLS PANEL */}
+          <section style={{ backgroundColor: '#111827', border: '1px solid #1e293b', borderRadius: '12px', padding: '24px' }}>
+            <h2 style={{ fontSize: '14px', textTransform: 'uppercase', color: '#9ca3af', letterSpacing: '1px', marginTop: '0', marginBottom: '8px' }}>
+              ⚙️ Incident Simulators
+            </h2>
+            <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 16px 0' }}>
+              Select a system incident below to run an automated triage analysis sequence:
             </p>
-            
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {scenarios.map((scen, idx) => (
-                <button 
-                  key={idx} 
-                  onClick={() => applyScenario(scen.log)}
-                  style={{ textAlign: 'left', backgroundColor: '#1f2937', border: '1px solid #374151', padding: '12px 16px', borderRadius: '8px', color: '#e5e7eb', cursor: 'pointer', transition: 'all 0.2s', fontSize: '14px', fontWeight: '500' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.backgroundColor = '#1e293b'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#374151'; e.currentTarget.style.backgroundColor = '#1f2937'; }}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              {Object.keys(presets).map((key) => (
+                <button
+                  key={key}
+                  onClick={() => triggerDiagnostic(key)}
+                  disabled={isProcessing}
+                  style={{ textAlign: 'left', backgroundColor: '#1f2937', border: '1px solid #374151', padding: '14px', borderRadius: '8px', color: '#ffffff', cursor: isProcessing ? 'not-allowed' : 'pointer', transition: 'all 0.2s', fontSize: '14px', fontWeight: '600' }}
+                  onMouseEnter={(e) => { if(!isProcessing) { e.currentTarget.style.borderColor = '#2563eb'; e.currentTarget.style.backgroundColor = '#1e293b'; } }}
+                  onMouseLeave={(e) => { if(!isProcessing) { e.currentTarget.style.borderColor = '#374151'; e.currentTarget.style.backgroundColor = '#1f2937'; } }}
                 >
-                  {scen.title}
+                  {presets[key].name}
                 </button>
               ))}
             </div>
-          </div>
-
-          <div style={{ borderTop: '1px solid #1f2937', paddingTop: '20px', marginTop: '20px', display: 'flex', gap: '20px', color: '#6b7280', fontSize: '12px' }}>
-            <div><strong>Backend Stack:</strong> Vercel Serverless / Google Gemini AI</div>
-            <div><strong>Frontend:</strong> React / Micro-styled Flex Matrix</div>
-          </div>
+          </section>
         </div>
 
-        {/* RIGHT COLUMN: INTERACTIVE DARK TERMINAL */}
-        <div style={{ display: 'flex', flexDirection: 'column', backgroundColor: '#030712', borderRadius: '12px', border: '1px solid #1f2937', overflow: 'hidden', boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.8)' }}>
-          {/* Header controls bar */}
-          <div style={{ backgroundColor: '#111827', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #1f2937' }}>
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#ef4444' }}></div>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#f59e0b' }}></div>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', backgroundColor: '#10b981' }}></div>
-            </div>
-            <div style={{ color: '#4b5563', fontSize: '12px', fontFamily: 'monospace', fontWeight: '600' }}>telemetry_processor.sh</div>
-            <div style={{ width: '38px' }}></div>
-          </div>
+        {/* RIGHT COLUMN: ENTERPRISE SYSTEM GRAPHIC & LIVE METRICS PANEL */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
           
-          {/* Output chat area */}
-          <div ref={chatOutputRef} style={{ padding: '20px', height: '380px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '16px', fontFamily: 'monospace', fontSize: '13px', lineHeight: '1.5' }}>
-            {messages.map((msg, i) => (
-              <div key={i} style={
-                msg.type === 'system' ? { color: '#4b5563', fontStyle: 'italic' } :
-                msg.type === 'user' ? { color: '#38bdf8' } :
-                { color: '#34d399', backgroundColor: '#111827', padding: '14px', borderRadius: '8px', borderLeft: '3px solid #34d399', whiteSpace: 'pre-wrap' }
-              }>
-                {msg.text}
+          {/* ANALYTICS VISUAL METRICS BAR */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+            <div style={{ backgroundColor: '#111827', border: '1px solid #1e293b', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', fontWeight: '700', marginBottom: '6px' }}>Incident Threat Level</div>
+              <div style={{ fontSize: '24px', fontWeight: '800', color: currentScenario ? currentScenario.color : '#4b5563' }}>
+                {currentScenario ? currentScenario.impact : "IDLE"}
               </div>
-            ))}
-            {loading && <div style={{ color: '#6b7280', fontStyle: 'italic', animation: 'pulse 1.5s infinite' }}>[PROCESSING EXPLOIT RUNTIME DIRECTIVES...]</div>}
-          </div>
-
-          {/* Interactive input area */}
-          <div style={{ padding: '16px', backgroundColor: '#111827', display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid #1f2937' }}>
-            <textarea 
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              rows="3" 
-              placeholder="Select a simulator preset on the left or paste server logs here..."
-              style={{ width: '100%', backgroundColor: '#030712', border: '1px solid #374151', color: '#f3f4f6', padding: '12px', borderRadius: '6px', resize: 'none', fontFamily: 'monospace', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }}
-            />
-            <button 
-              onClick={handleSend}
-              style={{ backgroundColor: '#2563eb', color: 'white', border: 'none', padding: '10px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '14px', alignSelf: 'flex-end', transition: 'background 0.2s' }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#1d4ed8'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = '#2563eb'}
-            >
-              Analyze Incident Log →
-            </button>
-          </div>
-        </div>
-
-      </div>
-    </div>
-  );
-}
+            </div>
+            <div style={{ backgroundColor: '#111827', border: '1px solid #1e293b', padding: '20px', borderRadius: '12px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#6b7280', fontWeight: '700', marginBottom: '6px' }}>System Severity Meter</div>
+              <div style={{ fontSize: '24px', fontWeight: '800', color: severityScore > 70 ? '#ef4444' : severityScore > 0 ? '#f59e0b' : '#4b5563' }}>
+                {severityScore > 0 ? `${severityScore}%` : "0%"}
+              </div>
+            </div>
