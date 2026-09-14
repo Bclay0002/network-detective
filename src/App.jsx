@@ -1,121 +1,165 @@
-import React, { useState } from 'react';
-import { Terminal, Send, Network, ShieldCheck, AlertCircle, RefreshCw } from 'lucide-react';
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Network Detective</title>
+    <script src="https://jsdelivr.net"></script>
+    <style>
+        body {
+            background-color: #0b0f19;
+            color: #4ade80;
+            font-family: 'Courier New', Courier, monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .terminal-container {
+            width: 100%;
+            max-width: 800px;
+            background-color: #111827;
+            border: 1px solid #1f2937;
+            border-radius: 8px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+            overflow: hidden;
+        }
+        .terminal-header {
+            background-color: #1f2937;
+            padding: 10px 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            border-bottom: 1px solid #374151;
+        }
+        .window-dots {
+            display: flex;
+            gap: 6px;
+        }
+        .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+        .dot-red { background-color: #ef4444; }
+        .dot-yellow { background-color: #f59e0b; }
+        .dot-green { background-color: #10b981; }
+        .terminal-title {
+            color: #9ca3af;
+            font-size: 14px;
+        }
+        .terminal-body {
+            padding: 20px;
+            height: 400px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .system-msg { color: #6b7280; }
+        .user-msg { color: #38bdf8; margin-top: 5px; }
+        .ai-msg { color: #4ade80; background-color: #1f2937; padding: 12px; border-radius: 6px; border-left: 4px solid #4ade80; }
+        .input-area {
+            padding: 15px;
+            background-color: #1f2937;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #374151;
+        }
+        textarea {
+            flex-grow: 1;
+            background-color: #0b0f19;
+            border: 1px solid #4b5563;
+            color: #f3f4f6;
+            padding: 10px;
+            border-radius: 4px;
+            resize: none;
+            font-family: inherit;
+        }
+        textarea:focus {
+            outline: none;
+            border-color: #4ade80;
+        }
+        button {
+            background-color: #047857;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        button:hover { background-color: #065f46; }
+    </style>
+</head>
+<body>
 
-function App() {
-  const [input, setInput] = useState('');
-  const [logs, setLogs] = useState([
-    { role: 'system', text: 'Network Detective Environment Initialized. Ready for log/topology ingestion.' }
-  ]);
-  const [loading, setLoading] = useState(false);
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    if (!input.trim() || loading) return;
-
-    const userMessage = input;
-    setInput('');
-    setLogs(prev => [...prev, { role: 'user', text: userMessage }]);
-    setLoading(true);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage })
-      });
-      const data = await response.json();
-      
-      if (data.error) {
-        setLogs(prev => [...prev, { role: 'error', text: `Error: ${data.error}` }]);
-      } else {
-        setLogs(prev => [...prev, { role: 'agent', text: data.reply }]);
-      }
-    } catch (err) {
-      setLogs(prev => [...prev, { role: 'error', text: 'Failed to communicate with diagnostic backend.' }]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 font-sans flex flex-col">
-      {/* Top Navbar */}
-      <header className="border-b border-slate-800 bg-slate-900/50 px-6 py-4 flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <Network className="h-6 w-6 text-emerald-400" />
-          <h1 className="text-xl font-bold tracking-tight">
-            Network<span className="text-emerald-400">Detective</span>
-          </h1>
-          <span className="text-xs bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-0.5 rounded">Live Demo</span>
+<div class="terminal-container">
+    <div class="terminal-header">
+        <div class="window-dots">
+            <div class="dot dot-red"></div>
+            <div class="dot dot-yellow"></div>
+            <div class="dot dot-green"></div>
         </div>
-        <div className="flex items-center space-x-4 text-sm text-slate-400">
-          <span className="flex items-center gap-1"><ShieldCheck className="w-4 h-4 text-emerald-400"/> Free Tier Gemini-Powered</span>
-        </div>
-      </header>
-
-      {/* Main Terminal Shell */}
-      <main className="flex-1 max-w-5xl w-full mx-auto p-4 md:p-6 flex flex-col min-h-0">
-        <div className="flex-1 bg-slate-900 border border-slate-800 rounded-xl flex flex-col min-h-0 shadow-2xl overflow-hidden">
-          {/* Windows-style Header Bars */}
-          <div className="bg-slate-950 px-4 py-2 border-b border-slate-800/80 flex items-center justify-between text-xs text-slate-500">
-            <div className="flex items-center space-x-2">
-              <span className="w-3 h-3 rounded-full bg-rose-500/40"></span>
-              <span className="w-3 h-3 rounded-full bg-amber-500/40"></span>
-              <span className="w-3 h-3 rounded-full bg-emerald-500/40"></span>
-              <span className="font-mono pl-2 text-slate-400">diagnostics_engine.sh</span>
-            </div>
-          </div>
-
-          {/* Chat/Log Stream */}
-          <div className="flex-1 overflow-y-auto p-6 font-mono space-y-6 text-sm">
-            {logs.map((log, i) => (
-              <div key={i} className={`flex gap-3 ${log.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-lg p-4 leading-relaxed ${
-                  log.role === 'user' 
-                    ? 'bg-emerald-600 text-white rounded-br-none ml-12' 
-                    : log.role === 'error'
-                    ? 'bg-rose-950/50 border border-rose-800 text-rose-300'
-                    : log.role === 'system'
-                    ? 'bg-slate-950 border border-slate-800 text-slate-400 text-xs'
-                    : 'bg-slate-950 border border-slate-800 text-slate-200'
-                }`}>
-                  {log.role !== 'user' && log.role !== 'system' && (
-                    <div className="text-xs text-emerald-400 font-bold mb-1 uppercase tracking-wider">▲ Core Engine Diagnosis:</div>
-                  )}
-                  <p className="whitespace-pre-wrap">{log.text}</p>
-                </div>
-              </div>
-            ))}
-            {loading && (
-              <div className="flex items-center space-x-2 text-slate-400 font-mono text-xs animate-pulse">
-                <RefreshCw className="w-4 h-4 animate-spin text-emerald-400" />
-                <span>Parsing infrastructure data stream...</span>
-              </div>
-            )}
-          </div>
-
-          {/* Input Area */}
-          <form onSubmit={handleSubmit} className="p-4 bg-slate-950 border-t border-slate-800 flex gap-3">
-            <input
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              placeholder="Paste BGP leaks, routing errors, trace logs, or device setups..."
-              className="flex-1 bg-slate-900 border border-slate-800 rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-emerald-500 font-mono transition-colors placeholder:text-slate-600"
-              disabled={loading}
-            />
-            <button
-              type="submit"
-              disabled={loading}
-              className="bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-800 text-white px-5 rounded-lg flex items-center justify-center transition-colors shadow-lg shadow-emerald-900/20"
-            >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
-        </div>
-      </main>
+        <div class="terminal-title">diagnostics_engine.sh — Free Gemini Edition</div>
+        <div></div>
     </div>
-  );
-}
+    
+    <div class="terminal-body" id="chat-output">
+        <div class="system-msg">[SYSTEM INIZIALIZED]: Ready for incident response scripts, routing logs, or network anomalies...</div>
+    </div>
 
-export default App;
+    <div class="input-area">
+        <textarea id="chat-input" rows="2" placeholder="Paste BGP leaks, routing errors, or configs here..."></textarea>
+        <button id="send-btn">RUN DIAGNOSTICS</button>
+    </div>
+</div>
+
+<script>
+    const sendBtn = document.getElementById('send-btn');
+    const chatInput = document.getElementById('chat-input');
+    const chatOutput = document.getElementById('chat-output');
+
+    sendBtn.addEventListener('click', async () => {
+        const message = chatInput.value.trim();
+        if (!message) return;
+
+        // Append user query
+        const userDiv = document.createElement('div');
+        userDiv.className = 'user-msg';
+        userDiv.innerText = `> USER: ${message}`;
+        chatOutput.appendChild(userDiv);
+        chatInput.value = '';
+
+        // Add running loader
+        const loadingDiv = document.createElement('div');
+        loadingDiv.className = 'system-msg';
+        loadingDiv.innerText = '[ANALYZING INFRASTRUCTURE LOGS...]';
+        chatOutput.appendChild(loadingDiv);
+        chatOutput.scrollTop = chatOutput.scrollHeight;
+
+        try {
+            const response = await fetch('/api/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message })
+            });
+            const data = await response.json();
+            
+            loadingDiv.remove();
+
+            const aiDiv = document.createElement('div');
+            aiDiv.className = 'ai-msg';
+            aiDiv.innerText = data.reply || "Error: Empty response.";
+            chatOutput.appendChild(aiDiv);
+        } catch (err) {
+            loadingDiv.innerText = '[CRITICAL AUTOMATION EXCEPTION]: Server connection timed out.';
+        }
+        chatOutput.scrollTop = chatOutput.scrollHeight;
+    });
+</script>
+</body>
+</html>
